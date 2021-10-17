@@ -16,6 +16,17 @@ const connection = new Pool({
     database: 'boardcamp'
 });
 
+function validaNumbero(phone){
+    
+    for(let i = 0; i < phone.length; i++){
+        const pn = phone[i];
+        if(isNaN(Number(pn))){
+            console.log("ué");
+            return false;
+        }
+    }
+    return true;
+}
 
 app.get("/categories", async (req, res) =>{
     const result = await connection.query(`SELECT * FROM categories;`);
@@ -137,20 +148,15 @@ app.post("/customers", async (req,res)=>{
     if(name.length === 0){
         res.sendStatus(400);
     }
-    if(cpf.length !== 11){
+    if(cpf.length !== 11 || (phone.length < 10 || phone.length> 11)){
         res.sendStatus(400);
     }
-    let phoneNumber = true;
-    for(let i = 0; i < phone.length; i++){
-        const pn = phone[i];
-        if(isNaN(Number(pn))){
-            phoneNumber = false;
-            break;
-        }
+
+    if(!validaNumbero(phone) || !validaNumbero(cpf)){
+        
+        res.status(400).send("eaia");
     }
-    if(!phoneNumber){
-        res.status(400).send("eai");
-    }
+
 
     try{
         const resultQuery = await connection.query(`SELECT * FROM customers WHERE cpf = $1;`, [cpf]);
@@ -168,11 +174,51 @@ app.post("/customers", async (req,res)=>{
 
 });
 
-app.put("/customers/:id", (res, req)=>{
+app.put("/customers/:id", async (req,res)=>{
+    const id = Number(req.params.id);
+    const {
+        name,
+        phone,
+        cpf,
+        birthday
+    } = req.body;
     
+    if(!name && !phone && !cpf && !birthday){
+        res.sendStatus(200);
+    }
+    if(name.length === 0){
+        res.sendStatus(400);
+    }
+    if(!validaNumbero(phone) || !validaNumbero(cpf)){
+        res.status(400).send("eaia");
+    }
+
+    if(cpf.length !== 11 || (phone.length < 10 || phone.length> 11)){
+        res.sendStatus(400);
+    }
+
+    try{
+        const resultQuery = await connection.query(`SELECT * FROM customers WHERE id = $1;`, [id]);
+        const resultQueryCpf = await connection.query(`SELECT * FROM customers WHERE cpf = $1;`, [cpf]);
+        if(resultQuery.rows.length !== 0 && resultQueryCpf.rows.length === 0){
+            console.log(birthday);
+            const result  = await connection.query(`UPDATE customers SET name = $1, phone = $2, cpf = $3, birthday = $4 WHERE id = $5;`, [name, phone, cpf, birthday, id]);
+            res.send("deu bom");
+        } else{
+            res.sendStatus(409);
+        }
+    }catch{
+        res.sendStatus(500);
+    }
 });
+
+app.get("/rentals", async (req,res)=>{
+
+});
+
 
 
 
 app.listen(4000);
 
+//lembrar de validar a data
