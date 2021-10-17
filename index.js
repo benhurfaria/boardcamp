@@ -91,7 +91,86 @@ app.post("/games", async (req,res)=>{
     
 });
 
+app.get("/customers", async (req,res)=>{
+    const {cpf} = req.query;
+    
+    try{
+        if(cpf !== undefined){
+            const entrada = cpf + "%";
+            const resultParte = await connection.query(`SELECT * FROM customers WHERE name LIKE $1;`,[entrada]);
+            res.send(resultParte.rows);
+        } else{
+            const result = await connection.query(`SELECT * FROM customers;`);
+            res.send(result.rows);
+        }
+    }catch{
+        res.sendStatus(500);
+    }
+});
 
+app.get("/customers/:id", async (req,res)=>{
+    const id = Number(req.params.id);
+    
+    try{
+        const result = await connection.query(`SELECT * FROM "customers" WHERE id = $1;`, [id]);
+        if(result.rows.length !== 0){
+            res.send(result.rows);
+        }else{
+            res.sendStatus(404);
+        }
+    }catch{
+        res.sendStatus(500);
+    }
+});
+
+app.post("/customers", async (req,res)=>{
+    const {
+        name,
+        phone,
+        cpf,
+        birthday
+    } = req.body;
+
+    if(!name && !phone && !cpf && !birthday){
+        res.sendStatus(201);
+    }
+    if(name.length === 0){
+        res.sendStatus(400);
+    }
+    if(cpf.length !== 11){
+        res.sendStatus(400);
+    }
+    let phoneNumber = true;
+    for(let i = 0; i < phone.length; i++){
+        const pn = phone[i];
+        if(isNaN(Number(pn))){
+            phoneNumber = false;
+            break;
+        }
+    }
+    if(!phoneNumber){
+        res.status(400).send("eai");
+    }
+
+    try{
+        const resultQuery = await connection.query(`SELECT * FROM customers WHERE cpf = $1;`, [cpf]);
+
+        if(resultQuery.rows.length === 0){
+            console.log(birthday);
+            const result  = await connection.query(`INSERT INTO customers (name, phone, cpf, birthday) VALUES ($1, $2, $3, $4);`, [name, phone, cpf, birthday]);
+            res.send("deu bom");
+        } else{
+            res.sendStatus(409);
+        }
+    }catch{
+        res.sendStatus(500);
+    }
+
+});
+
+app.put("/customers/:id", (res, req)=>{
+    
+});
 
 
 
