@@ -46,7 +46,7 @@ app.post("/categories", async (req, res) =>{
         res.status(409).send("Esta categoria já existe");
     }else{
         const result = await connection.query(`INSERT INTO categories (name) VALUES ($1);`, [name]);
-        res.send("deu bom");
+        res.sendStatus(201);
     }    
 });
 
@@ -94,7 +94,7 @@ app.post("/games", async (req,res)=>{
             res.sendStatus(409);
         }else{
             const result = await connection.query(`INSERT INTO games (name, image, "stockTotal", "categoryId", "pricePerDay") VALUES ($1, $2, $3, $4, $5);`, [name,image, stockTotal, categoryId, pricePerDay]);
-            res.send("deu bom");
+            res.sendStatus(201);
         }
     }catch{
         res.sendStatus(500);
@@ -125,7 +125,7 @@ app.get("/customers/:id", async (req,res)=>{
     try{
         const result = await connection.query(`SELECT * FROM "customers" WHERE id = $1;`, [id]);
         if(result.rows.length !== 0){
-            res.send(result.rows);
+            res.send(result.rows).status(201);
         }else{
             res.sendStatus(404);
         }
@@ -143,7 +143,7 @@ app.post("/customers", async (req,res)=>{
     } = req.body;
 
     if(!name && !phone && !cpf && !birthday){
-        res.sendStatus(201);
+        res.sendStatus(400);
     }
     if(name.length === 0){
         res.sendStatus(400);
@@ -164,7 +164,7 @@ app.post("/customers", async (req,res)=>{
         if(resultQuery.rows.length === 0){
             console.log(birthday);
             const result  = await connection.query(`INSERT INTO customers (name, phone, cpf, birthday) VALUES ($1, $2, $3, $4);`, [name, phone, cpf, birthday]);
-            res.send("deu bom");
+            res.sendStatus(201);
         } else{
             res.sendStatus(409);
         }
@@ -184,7 +184,7 @@ app.put("/customers/:id", async (req,res)=>{
     } = req.body;
     
     if(!name && !phone && !cpf && !birthday){
-        res.sendStatus(200);
+        res.sendStatus(400);
     }
     if(name.length === 0){
         res.sendStatus(400);
@@ -203,7 +203,7 @@ app.put("/customers/:id", async (req,res)=>{
         if(resultQuery.rows.length !== 0 && resultQueryCpf.rows.length === 0){
             console.log(birthday);
             const result  = await connection.query(`UPDATE customers SET name = $1, phone = $2, cpf = $3, birthday = $4 WHERE id = $5;`, [name, phone, cpf, birthday, id]);
-            res.send("deu bom");
+            res.sendStatus(201);
         } else{
             res.sendStatus(409);
         }
@@ -214,7 +214,7 @@ app.put("/customers/:id", async (req,res)=>{
 
 app.get("/rentals", async (req,res)=>{
     const {customerId} = req.query;
-    
+
     try{
         const result = await await connection.query(`SELECT rentals.*, customers.id AS customerid, customers.name AS customername, games.id AS gameid, games.name AS gamename, games."categoryId" AS gamescategoryid, categories.name AS "categoryName" FROM customers JOIN rentals ON customers.id=rentals."customerId" JOIN games ON rentals."gameId"=games.id JOIN categories ON games."categoryId" = categories.id;`);
 
@@ -248,7 +248,36 @@ app.get("/rentals", async (req,res)=>{
     }
 
 });
- 
+
+app.post("/rentals/:id", async (req,res) =>{
+    const {
+        customerId,
+        gameId,
+        daysRented
+    } = req.body;
+    if(!customerId || !gameId || !daysRented){
+        res.sendStatus(400);
+    }
+
+
+});
+
+ app.delete("/rentals/:id", async (req, res)=>{
+    const id = Number(req.params.id);
+
+    try{
+        const resultSel = await connection.query(`SELECT * FROM rentals WHERE id = $1;`, [id]);
+
+        if(resultSel.rows.length > 0){
+            const result = await connection.query(`DELETE FROM rentals WHERE id = $1`, [id]);
+            res.send(200);
+        }else{
+            res.send(404);
+        }
+    }catch{
+        res.sendStatus(500);
+    }
+ })
 
 
 
