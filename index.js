@@ -57,12 +57,12 @@ app.get("/games", async (req, res) =>{
     try{
         if(name !== undefined){
             const entrada = name + "%";
-            const resultParte = await connection.query(`SELECT * FROM games WHERE name LIKE $1;`,[entrada]);
+            const resultParte = await connection.query(`SELECT games.*, categories.name AS "categoryName" FROM games JOIN categories ON games."categoryId" = categories.id WHERE games.name LIKE $1;`,[entrada]);
             res.send(resultParte.rows);
 
         }
         else{
-            const result = await connection.query(`SELECT * FROM games;`);
+            const result = await connection.query(`SELECT games.*, categories.name AS "categoryName" FROM games JOIN categories ON games."categoryId" = categories.id;`);
             res.send(result.rows);
         }
     }catch{
@@ -88,7 +88,7 @@ app.post("/games", async (req,res)=>{
     }
 
     try{
-        console.log("OI");
+        
         const resultNome = await connection.query(`SELECT * FROM games WHERE name = $1`, [name]);
         if(resultNome.rows.length !==0){
             res.sendStatus(409);
@@ -213,12 +213,66 @@ app.put("/customers/:id", async (req,res)=>{
 });
 
 app.get("/rentals", async (req,res)=>{
+    const {customerId} = req.query;
+    
+    try{
+        const result = await await connection.query(`SELECT rentals.*, customers.id AS customerid, customers.name AS customername, games.id AS gameid, games.name AS gamename, games."categoryId" AS gamescategoryid, categories.name AS "categoryName" FROM customers JOIN rentals ON customers.id=rentals."customerId" JOIN games ON rentals."gameId"=games.id JOIN categories ON games."categoryId" = categories.id;`);
+
+        let resultadoFormatado =[];
+
+        result.rows.forEach(rent => {
+            resultadoFormatado.push({
+                id: rent.id, 
+                customerId: rent.customerid, 
+                gameId: rent.gameid, 
+                rentDate: rent.rentDate, 
+                daysRented: rent.daysRented,
+                returnDate: rent.returnDate, 
+                originalPrice: rent.originalPrice, 
+                delayFee: rent.delayFee, 
+                customer: { 
+                    id: rent.customerid, 
+                    name: rent.name 
+                },
+                game: { 
+                    id: rent.gameid, 
+                    name: rent.gamename, 
+                    categoryId: rent.gamescategoryid, 
+                    categoryName: rent.categoryName 
+                }
+            })});
+            
+        res.send(resultadoFormatado);
+    }catch{
+        res.send(500);
+    }
 
 });
-
+ 
 
 
 
 app.listen(4000);
 
 //lembrar de validar a data
+//SELECT rentals.*, customers.id, customers.name, games.id, games.name, games."categoryId", categories.name AS "categoryName" FROM customers JOIN rentals ON customers.id=rentals."customerId" JOIN games ON rentals."customerId"=games.id JOIN categories ON games."categoryId" = categories.id;
+/*id: result.rows.map(id => {return id.id}),
+            customerId: result.rows.map(customerId => {return customerId.customerId}),
+            rentDate: result.rows.map(rent => {return rent.rentDate}),
+            daysRented: result.rows.map(days => {return days.daysRented}),
+            returnDate: result.rows.map(retu => {return retu.returnDate}),
+            originalPrice: result.rows.map(origi => {return origi.originalPrice}),
+            delayFee: result.rows.map(delay => {return delay.delayFee}), customer: result.rows.map(linhascustomers =>{
+                return {
+                    id: linhascustomers.customerid,
+                    name: linhascustomers.customername
+                }
+            }),
+            game: result.rows.map(linhasgames =>{
+                return {
+                    id: linhasgames.gameid,
+                    name: linhasgames.gamename,
+                    categoryId: linhasgames.gamescategoryid,
+                    categoryName: linhasgames.categoryName
+                }
+            })*/
